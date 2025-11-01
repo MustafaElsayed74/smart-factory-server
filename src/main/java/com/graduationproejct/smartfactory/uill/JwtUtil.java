@@ -2,9 +2,9 @@ package com.graduationproejct.smartfactory.uill;
 
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jwts;
-import io.jsonwebtoken.SignatureAlgorithm;
 import io.jsonwebtoken.io.Decoders;
 import io.jsonwebtoken.security.Keys;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.stereotype.Component;
 
@@ -17,11 +17,14 @@ import java.util.function.Function;
 @Component
 public class JwtUtil {
 
+    @Value("${jwt.secret}")
+    private String jwtSecret;
+
     private String generateToken(Map<String, Object> extraDetails, UserDetails userDetails) {
         return Jwts.builder().setClaims(extraDetails).setSubject(userDetails.getUsername())
                 .setIssuedAt(new Date(System.currentTimeMillis()))
                 .setExpiration(new Date(System.currentTimeMillis() + 1000 * 3600 * 24))
-                .signWith(getSigningInKey(), SignatureAlgorithm.HS256).compact();
+                .signWith(getSigningInKey()).compact();
     }
 
     public String generateToken(UserDetails userDetails){
@@ -61,7 +64,7 @@ public class JwtUtil {
 
 
     private Key getSigningInKey() {
-        byte[] keyBytes = Decoders.BASE64.decode("4135F4428472B48625065536856605970337333676397924422645294840406351");
+        byte[] keyBytes = Decoders.BASE64.decode(jwtSecret);
         return Keys.hmacShaKeyFor(keyBytes);
     }
 }

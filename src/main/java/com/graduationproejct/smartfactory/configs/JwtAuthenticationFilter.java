@@ -36,26 +36,31 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             filterChain.doFilter(request, response);
             return;
         }
-        final String jwt;
-        jwt = authHeader.substring(7); // "Bearer " => ends at index 6, token starts with index 7
+        
+        try {
+            final String jwt = authHeader.substring(7); // "Bearer " => ends at index 6, token starts with index 7
+            final String userEmail = jwtUtil.extractUserName(jwt);
 
-        final String userEmail = jwtUtil.extractUserName(jwt);
+            if (StringUtils.isNotEmpty(userEmail) &&
+                    SecurityContextHolder.getContext().getAuthentication() == null) {
 
-        if (StringUtils.isNotEmpty(userEmail) &&
-                SecurityContextHolder.getContext().getAuthentication() == null) {
+                UserDetails userDetails = userService.userDetailsService().loadUserByUsername(userEmail);
+                if (jwtUtil.isTokenValid(jwt, userDetails)) {
+                    SecurityContext context = SecurityContextHolder.createEmptyContext();
 
-            UserDetails userDetails = userService.userDetailsService().loadUserByUsername(userEmail);
-            if (jwtUtil.isTokenValid(jwt, userDetails)) {
-                SecurityContext context = SecurityContextHolder.createEmptyContext();
+                    UsernamePasswordAuthenticationToken authenticationToken = new UsernamePasswordAuthenticationToken(userEmail, null, userDetails.getAuthorities());
+                    authenticationToken.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
 
-                UsernamePasswordAuthenticationToken authenticationToken = new UsernamePasswordAuthenticationToken(userEmail, null, userDetails.getAuthorities());
-                authenticationToken.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
+                    context.setAuthentication(authenticationToken);
 
-                context.setAuthentication(authenticationToken);
-
-                SecurityContextHolder.setContext(context);
+                    SecurityContextHolder.setContext(context);
+                }
             }
+        } catch (Exception e) {
+            // If token parsing fails, just continue without authentication
+            // This allows login and signup endpoints to work without tokens
         }
+        
         filterChain.doFilter(request, response);
     }
 }

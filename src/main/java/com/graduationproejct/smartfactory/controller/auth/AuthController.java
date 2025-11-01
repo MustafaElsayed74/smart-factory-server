@@ -37,7 +37,7 @@ public class AuthController {
     private final UserService userService;
 
     @PostMapping("/signup")
-    public ResponseEntity<?> signInUser(@RequestBody SignUpRequest request) {
+    public ResponseEntity<?> signUpUser(@RequestBody SignUpRequest request) {
         try {
             UserDto createdUser = authService.createUser(request);
             return ResponseEntity.ok(createdUser);
@@ -47,25 +47,27 @@ public class AuthController {
     }
 
     @PostMapping("/login")
-    public AuthResponse createAuthenticationToken(@RequestBody AuthRequest request) {
+    public ResponseEntity<?> createAuthenticationToken(@RequestBody AuthRequest request) {
         // Checks if the input credentials are correct and matched
         try {
             authenticationManager.authenticate(new UsernamePasswordAuthenticationToken(request.getEmail(), request.getPassword()));
         } catch (BadCredentialsException ex) {
-            throw new BadCredentialsException("Incorrect username or password.");
+            return new ResponseEntity<>("Incorrect username or password.", HttpStatus.UNAUTHORIZED);
         }
 
         // Create Token - Login
-
         final UserDetails userDetails = userService.userDetailsService().loadUserByUsername(request.getEmail());
         Optional<User> optionalUser = userRepository.findFirstByEmail(userDetails.getUsername());
-        final String jwt = jwtUtil.generateToken(userDetails);
-
-        AuthResponse authResponse = new AuthResponse();
-        if (optionalUser.isPresent()) {
-            authResponse.setJwt(jwt);
-            authResponse.setUserRole(optionalUser.get().getUserRole());
-            authResponse.setUserId(optionalUser.get().getId());
+        
+        if (optionalUser.isEmpty()) {
+            return new ResponseEntity<>("User not found.", HttpStatus.NOT_FOUND);
         }
-        return authResponse;
+        
+        final String jwt = jwtUtil.generateToken(userDetails);
+        AuthResponse authResponse = new AuthResponse();
+        authResponse.setJwt(jwt);
+        authResponse.setUserRole(optionalUser.get().getUserRole());
+        authResponse.setUserId(optionalUser.get().getId());
+        
+        return ResponseEntity.ok(authResponse);
     }}

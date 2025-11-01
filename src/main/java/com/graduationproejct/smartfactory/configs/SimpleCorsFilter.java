@@ -10,8 +10,9 @@ import org.springframework.stereotype.Component;
 
 import java.io.IOException;
 
-@Component
-@Order(Ordered.HIGHEST_PRECEDENCE)
+// Disabled - CORS is now handled by Spring Security's CorsConfigurationSource
+// @Component
+// @Order(Ordered.HIGHEST_PRECEDENCE)
 public class SimpleCorsFilter implements Filter {
     @Override
     public void init(FilterConfig filterConfig) throws ServletException {
@@ -26,11 +27,18 @@ public class SimpleCorsFilter implements Filter {
         HttpServletRequest request = (HttpServletRequest) servletRequest;
 
         String originHeader = request.getHeader("origin");
+        if (originHeader == null || originHeader.isEmpty()) {
+            originHeader = "*";
+        }
 
         response.setHeader("Access-Control-Allow-Origin", originHeader);
         response.setHeader("Access-Control-Allow-Methods", "POST, GET, PUT, OPTIONS, DELETE");
         response.setHeader("Access-Control-Max-Age", "3600");
-        response.setHeader("Access-Control-Allow-Headers", "*");
+        response.setHeader("Access-Control-Allow-Headers", "Content-Type, Authorization, X-Requested-With");
+        // Only set credentials if not allowing all origins
+        if (!"*".equals(originHeader)) {
+            response.setHeader("Access-Control-Allow-Credentials", "true");
+        }
 
         if ("OPTIONS".equalsIgnoreCase(request.getMethod())) {
             response.setStatus(HttpServletResponse.SC_OK);

@@ -18,6 +18,7 @@ import java.util.Optional;
 public class AuthServiceImpl implements AuthService {
 
     private final UserRepository userRepository;
+    private final BCryptPasswordEncoder passwordEncoder;
 
 
     @PostConstruct
@@ -29,7 +30,7 @@ public class AuthServiceImpl implements AuthService {
             user.setEmail("admin@test.com");
             user.setName("admin");
             user.setUserRole(UserRole.ADMIN);
-            user.setPassword(new BCryptPasswordEncoder().encode("admin"));
+            user.setPassword(passwordEncoder.encode("admin"));
             userRepository.save(user);
             System.out.println("Admin account created successfully");
         } else {
@@ -49,7 +50,7 @@ public class AuthServiceImpl implements AuthService {
         user.setEmail(request.getEmail());
         user.setName(request.getName());
         user.setUserRole(UserRole.USER);
-        user.setPassword(new BCryptPasswordEncoder().encode(request.getPassword()));
+        user.setPassword(passwordEncoder.encode(request.getPassword()));
 
         User createdUser = userRepository.save(user);
 
